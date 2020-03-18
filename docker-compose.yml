@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+  api:
+    build: ./build
+    image: ${SERVICE_NAME}
+    container_name: ${SERVICE_NAME}
+    volumes:
+      - gosrc:/go
+      - .:/go/src/${API_BASE_DIR}/${API_NAME}
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    environment:
+      - SERVICE_TAGS=traefik.enable=true,traefik.frontend.entryPoints=http,traefik.frontend.rule=Host:${SERVICE_NAME}.localhost   
+    command: sh -c 'cd ${API_BASE_DIR}/${API_NAME};go get -v ./...; go run main.go'
+    depends_on: 
+      - db
+    networks:
+      - back_end
+
+  db:
+    image: mongo:latest
+    container_name: ${API_DB_URL}
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+      - MONGO_INITDB_ROOT_USERNAME=${API_DB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${API_DB_PASS}
+    volumes:
+      - api_mongo_data:/data/db
+    ports:
+      - ${DB_PORT}:27017
+    networks:
+      - back_end
+
+volumes:
+  gosrc:
+  api_mongo_data:
+networks:
+  back_end:
+    external: true
